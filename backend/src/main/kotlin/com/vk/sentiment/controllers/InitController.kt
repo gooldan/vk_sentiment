@@ -1,15 +1,15 @@
-package com.vk.sentiment
+package com.vk.sentiment.controllers
 
 import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.UserActor
 import com.vk.api.sdk.httpclient.HttpTransportClient
+import com.vk.sentiment.core.UsersHolder
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.*
 
-
 @RestController
-@RequestMapping("/api")
-class Controller {
+@RequestMapping("/auth")
+class Controller(val usersHolder: UsersHolder) {
 
   @Value("\${app.id}")
   private var appId: Int = 0
@@ -17,8 +17,9 @@ class Controller {
   @Value("\${app.secret}")
   private lateinit var appSecret: String
 
-  @GetMapping("messages")
-  fun hello(code: String, redirectUri: String): String {
+  @GetMapping("init")
+  fun init(@RequestParam("code") code: String, @RequestParam("redirectUri") redirectUri: String): Int {
+
     val vk = VkApiClient(HttpTransportClient())
     val authResponse = vk.oauth()
       .userAuthorizationCodeFlow(appId, appSecret, redirectUri, code)
@@ -26,26 +27,8 @@ class Controller {
 
     val actor = UserActor(authResponse.userId, authResponse.accessToken)
 
-    val getResponse = vk.wall().get(actor)
-      .ownerId(authResponse.userId)
-      .count(10)
-      .execute()
+    usersHolder.put(authResponse.userId, actor)
 
-    getResponse.items.forEach {
-      print(it.likes.count)
-    }
-
-    return "Kolyan durak"
-  }
-
-  @GetMapping("callback")
-  fun callback(): String {
-    println("***\n\n\ntest")
-    return "lolol"
-  }
-
-  @GetMapping("login")
-  fun login() {
-
+    return authResponse.userId
   }
 }
