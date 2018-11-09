@@ -10,6 +10,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
 import json
+import pickle
+from sklearn.externals import joblib
 
 download('stopwords')
 download('punkt')
@@ -58,23 +60,26 @@ for e in raw_train:
     tmp[e['sentiment']].append(e['text'])
 for l in tmp:
     train[l], val[l] = train_test_split(tmp[l], test_size=0.2, random_state=2018)
-    
+
 btrain = upsampling_align(train)
 m_params = {}
 m_params['solver'] = 'lbfgs'
 m_params['multi_class'] = 'multinomial'
-softmax = LogisticRegression(**m_params)
+stupid_model = LogisticRegression(**m_params)
 train_x = [j for i in sorted(btrain.keys()) for j in btrain[i]]
 train_y = [i for i in sorted(btrain.keys()) for j in btrain[i]]
-softmax.fit(tfidf.transform(train_x), train_y)
+stupid_model.fit(tfidf.transform(train_x), train_y)
 test_x = [j for i in sorted(val.keys()) for j in val[i]]
 true = [i for i in sorted(val.keys()) for j in val[i]]
-pred = softmax.predict(tfidf.transform(test_x))
+pred = stupid_model.predict(tfidf.transform(test_x))
 accuracy_score(true, pred)
 
-sub_pred = softmax.predict(tfidf.transform([i['text'] for i in raw_test]))
+sub_pred = stupid_model.predict(tfidf.transform([i['text'] for i in raw_test]))
 sub_df = pd.DataFrame()
 sub_df['id'] =  [i['id'] for i in raw_test]
 sub_df['sentiment'] = sub_pred
 
 print(sub_df.head())
+
+filename = 'finalized_model.sav'
+joblib.dump(model, filename)
