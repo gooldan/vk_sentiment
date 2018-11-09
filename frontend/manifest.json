@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "VK sentiment",
+  "description": "VK built-in sentiment for dialogs",
+  "version": "0.0.1",
+  "background": {
+    "scripts": ["src/init.js"],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_icon": {
+      "512": "src/icon.png"
+    },
+    "default_popup": "src/popup.html"
+  },
+  "content_scripts": [
+    {
+      "js": ["src/inject.js"],
+      "matches": ["https://vk.com/*"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "declarativeContent",
+    "storage",
+    "tabs"
+  ]
+}
