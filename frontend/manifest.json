@@ -4,7 +4,7 @@
   "description": "VK built-in sentiment for dialogs",
   "version": "0.0.1",
   "background": {
-    "scripts": ["src/init.js"],
+    "scripts": ["src/login.js", "src/init.js"],
     "persistent": false
   },
   "browser_action": {
@@ -24,6 +24,7 @@
     "activeTab",
     "declarativeContent",
     "storage",
-    "tabs"
+    "tabs",
+    "*://*/*"
   ]
 }

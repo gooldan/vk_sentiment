@@ -16,7 +16,18 @@ async function onLoad() {
       document.getElementById('container').classList.add('visible');
     }
   });
-  element.addEventListener('change', event => chrome.storage.sync.set({ 'enabled': event.target.checked }));
+  element.addEventListener('change', event => {
+    if (event.target.checked) {
+      login(token => {
+        if (!token) {
+          event.target.checked = false;
+        }
+        chrome.storage.sync.set({ 'enabled': !!token })
+      });
+    } else {
+      chrome.storage.sync.set({ 'enabled': false })
+    }
+  });
 }
 
 onLoad();

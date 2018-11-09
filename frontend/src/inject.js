@@ -1,9 +1,21 @@
+const cache = new Map();
+
 setInterval(() => {
   chrome.storage.sync.get(['enabled'], items => {
     const element = document.getElementById('dialog-id');
     if (element) {
       if (items.enabled) {
         element.style.display = 'inherit';
+        Array.from(document.getElementsByClassName('im-mess')).forEach(element => {
+          const id = element.getAttribute('data-msgid');
+          if (cache.has(id)) {
+            return;
+          }
+          cache.set(id, 0);
+          const idElement = document.createElement('div');
+          idElement.textContent = id;
+          element.appendChild(idElement);
+        });
       } else {
         element.style.display = 'none';
       }
