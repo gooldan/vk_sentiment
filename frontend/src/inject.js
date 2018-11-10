@@ -1,38 +1,44 @@
-const cache = new Map();
-
-setInterval(() => {
-  chrome.storage.sync.get(['enabled'], items => {
-    const element = document.getElementById('dialog-id');
-    if (element) {
-      if (items.enabled) {
-        element.style.display = 'inherit';
-        Array.from(document.getElementsByClassName('im-mess')).forEach(element => {
-          const id = element.getAttribute('data-msgid');
-          if (cache.has(id)) {
-            return;
-          }
-          cache.set(id, 0);
-          const idElement = document.createElement('div');
-          idElement.textContent = id;
-          element.appendChild(idElement);
-        });
-      } else {
-        element.style.display = 'none';
-      }
-    }
-  });
-}, 50);
-
+let messageCache = new Map();
+let tabId = null;
+const visualisedCache = new Map();
+let timer = null;
+let enabled = null;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const element = document.createElement('div');
-  element.textContent = message.dialogId;
-  element.id = 'dialog-id';
-  element.style.display = 'none';
-  const prevElement = document.getElementById('dialog-id');
-  if (prevElement) {
-    prevElement.parentElement.removeChild(prevElement);
+  if (message.type === 'OPEN_DIALOG') {
+    tabId = message.tabId;
+    timer = createTimer();
+  } else if (message.type === 'CLOSE_DIALOG' && timer) {
+    clearInterval(timer);
+    visualisedCache.clear();
   }
-  document.getElementsByClassName('im-page--aside').item(0).appendChild(element);
 });
 
+function createTimer() {
+  return setInterval(() => {
+    chrome.storage.sync.get(['enabled'], items => {
+      if (items.enabled) {
+        Array.from(document.getElementsByClassName('im-mess _im_mess')).forEach(messageElement => {
+          const id = messageElement.getAttribute('data-msgid');
+          const element = visualisedCache.get(id);
+          if (element) {
+            if (!enabled) {
+              element.style.display = 'inherit';
+            }
+            return;
+          }
+          messageCache.set(id, 0);
+          const idElement = document.createElement('div');
+          idElement.className = 'message-sentiment';
+          idElement.style.backgroundColor = getColorForPercentage(1);
+          idElement.title = 'Test';
+          messageElement.appendChild(idElement);
+          visualisedCache.set(id, idElement);
+        });
+      } else if (enabled) {
+        visualisedCache.forEach(element => element.style.display = 'none');
+      }
+      enabled = items.enabled;
+    });
+  }, 50);
+}
