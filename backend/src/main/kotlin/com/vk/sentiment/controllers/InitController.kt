@@ -1,35 +1,33 @@
 package com.vk.sentiment.controllers
 
-import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.UserActor
-import com.vk.api.sdk.httpclient.HttpTransportClient
-import com.vk.sentiment.core.DialogProcessor
-import com.vk.sentiment.core.PythonClient
-import com.vk.sentiment.data.SentimentalMessageRepository
+import com.vk.sentiment.core.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/auth")
-class Controller(val pythonClient: PythonClient, val sentimentalRepo: SentimentalMessageRepository) {
+class InitController(val dialogProcessor: DialogProcessor, val usersHolder: UsersHolder, val smartVkClient: SmartVkClient) {
 
   @Value("\${app.id}")
-  private var appId: Int = 0
+  private lateinit var appId: String
 
   @Value("\${app.secret}")
   private lateinit var appSecret: String
 
+  private val logger: Logger = LoggerFactory.getLogger(InitController::class.java)
+
   @GetMapping("init")
   fun init(@RequestParam("code") code: String, @RequestParam("redirectUri") redirectUri: String): Int {
-
-    val vk = VkApiClient(HttpTransportClient())
-    val authResponse = vk.oauth()
-      .userAuthorizationCodeFlow(appId, appSecret, redirectUri, code)
-      .execute()
+    logger.info("Login request received")
+    val authResponse = smartVkClient.auth(appId, appSecret, redirectUri, code)
 
     val actor = UserActor(authResponse.userId, authResponse.accessToken)
+    usersHolder.put(actor.id, actor)
 
-    DialogProcessor(actor, vk, pythonClient, sentimentalRepo).processAll()
+    dialogProcessor.processAll(actor)
 
     return authResponse.userId
   }
