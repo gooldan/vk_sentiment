@@ -1,29 +1,24 @@
 package com.vk.sentiment.core
 
-import org.springframework.http.MediaType
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.client.WebClient
-import reactor.core.publisher.Mono
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.springframework.http.HttpEntity
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.web.client.RestTemplate
 
 class PythonClient {
 
-  private val webClient = WebClient
-    .builder()
-    .baseUrl("http://localhost:5000")
-    .build()
-
   fun sendMessage(messageId: Int, userId: Int, body: String) {
-    webClient
-      .post()
-      .uri("msg")
-      .contentType(MediaType.APPLICATION_JSON)
-      .body(BodyInserters.fromPublisher(Mono.just(MessageDto(messageId, userId, body)), MessageDto::class.java))
-      .retrieve()
-      .bodyToMono(MlResponse::class.java)
-      .toFuture()
-      .thenAccept { println(it) }
+    val objectMapper = ObjectMapper().registerKotlinModule()
+    val messageConverter = MappingJackson2HttpMessageConverter()
+    messageConverter.setPrettyPrint(false)
+    messageConverter.objectMapper = objectMapper
+    val restTemplate = RestTemplate()
+    val request = HttpEntity(MessageDto(messageId, userId, body))
+    val response = restTemplate.postForEntity("http://192.168.1.39:5000/get_score_pos_neg", request, MlResponse::class.java)
+    println(response)
   }
 }
 
-private data class MessageDto(val messageId: Int, val userId: Int, val body: String)
-private data class MlResponse(val neg: Double, val pos: Double)
+private data class MessageDto(val messageID: Int, val userID: Int, val message: String)
+data class MlResponse(val neg: Double, val pos: Double)
