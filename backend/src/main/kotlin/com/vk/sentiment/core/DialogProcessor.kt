@@ -2,47 +2,64 @@ package com.vk.sentiment.core
 
 import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.UserActor
+import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.api.sdk.objects.messages.Dialog
-import com.vk.sentiment.data.SentimentalMessageRepository
-import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
+import com.vk.sentiment.data.SentimentalService
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.slf4j.LoggerFactory
+import java.util.concurrent.*
 
 
 class DialogProcessor(
-  private val mutex: Mutex,
-  private val actor: UserActor,
-  private val vk: VkApiClient,
   private val pythonClient: PythonClient,
-  private val sentimentalRepo: SentimentalMessageRepository
+  private val sentimentalService: SentimentalService
 ) {
 
-  fun processAll() {
-    val dialogs = vk.messages().getDialogs(actor).count(200).execute()
+  private val logger = LoggerFactory.getLogger(DialogProcessor::class.java)
+  private val executor = FixRateExecutor { userActor, dialog -> processDialog(userActor, dialog) }
 
-    GlobalScope.launch {
-      dialogs.items.forEach {
-        processDialog(it)
-        delay(300)
-      }
-    }
+  private val vk = VkApiClient(HttpTransportClient())
+
+  fun processAll(vk: VkApiClient, actor: UserActor) {
+    val dialogs = vk.messages().getDialogs(actor).count(200).execute()
+    val tasks = dialogs.items.map { actor to it }
+    executor.add(tasks)
   }
 
-  private fun processDialog(dialog: Dialog) {
+  private fun processDialog(actor: UserActor, dialog: Dialog) {
     val chatId = dialog.message.userId
     val history = vk.messages().getHistory(actor).count(200).peerId(chatId).execute()
     history.items.forEach {
       GlobalScope.launch {
-        val sentimentalMessage = pythonClient.sendMessage(it.id, actor.id, it.body, it.date)
-        mutex.lock()
-        try {
-          val last = sentimentalRepo.findAllByUserIdAndMessageId(it.userId, it.id)
-          if (last.isEmpty()) {
-            sentimentalRepo.save(sentimentalMessage)
+        if (sentimentalService.getDto(actor.id, it.id) == null) {
+          try {
+            val mlResponse = pythonClient.sendMessage(it.body)
+            sentimentalService.save(actor.id, it, mlResponse.neg, mlResponse.pos)
+          } catch (e: Exception) {
+            logger.error("Ml state error", e)
           }
-        } finally {
-          mutex.unlock()
         }
       }
     }
+  }
+}
+
+class FixRateExecutor(val action: (UserActor, Dialog) -> Unit) {
+  private val queue = ConcurrentLinkedQueue<Pair<UserActor, Dialog>>()
+
+  init {
+    Executors
+      .newSingleThreadScheduledExecutor()
+      .scheduleWithFixedDelay({ next() }, 0, 300, TimeUnit.MILLISECONDS)
+  }
+
+  fun add(dialog: List<Pair<UserActor, Dialog>>) {
+    queue.addAll(dialog)
+  }
+
+  private fun next() {
+    val head = queue.poll() ?: return
+    action(head.first, head.second)
   }
 }

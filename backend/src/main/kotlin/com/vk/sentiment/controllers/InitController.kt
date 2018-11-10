@@ -4,34 +4,31 @@ import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.UserActor
 import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.sentiment.core.DialogProcessor
-import com.vk.sentiment.core.PythonClient
-import com.vk.sentiment.data.SentimentalMessageRepository
-import kotlinx.coroutines.sync.Mutex
+import com.vk.sentiment.core.UsersHolder
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/auth")
-class Controller(val pythonClient: PythonClient, val sentimentalRepo: SentimentalMessageRepository) {
+class Controller(val dialogProcessor: DialogProcessor, val usersHolder: UsersHolder) {
 
   @Value("\${app.id}")
-  private var appId: Int = 0
+  private lateinit var appId: String
 
   @Value("\${app.secret}")
   private lateinit var appSecret: String
-
-  private val mutex = Mutex()
 
   @GetMapping("init")
   fun init(@RequestParam("code") code: String, @RequestParam("redirectUri") redirectUri: String): Int {
     val vk = VkApiClient(HttpTransportClient())
     val authResponse = vk.oauth()
-      .userAuthorizationCodeFlow(appId, appSecret, redirectUri, code)
+      .userAuthorizationCodeFlow(appId.toInt(), appSecret, redirectUri, code)
       .execute()
 
     val actor = UserActor(authResponse.userId, authResponse.accessToken)
+    usersHolder.put(actor.id, actor)
 
-    DialogProcessor(mutex, actor, vk, pythonClient, sentimentalRepo).processAll()
+    dialogProcessor.processAll(vk, actor)
 
     return authResponse.userId
   }
