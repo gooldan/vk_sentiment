@@ -1,11 +1,27 @@
 .message-sentiment {
-    color: transparent;
+    background-color: transparent;
     position: absolute;
     height: 100%;
     top: 0;
     left: -4px;
     width: 6px;
     opacity: 0;
+}
+
+.input-message-sentiment {
+    left: 0;
+    opacity: 0.5;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    width: 10px;
+}
+
+.input-message-sentiment:hover {
+    opacity: 1;
+}
+
+.im-mess_unread .message-sentiment {
+    left: -28px;
 }
 
 .im-mess:hover .message-sentiment {
@@ -31,13 +47,9 @@
 
 .sentiment-chart-layout .chart-header {
     position: absolute;
-    top: calc(20% - 42px);
+    top: calc(20% - 54px);
     left: 20%;
     width: 60%;
-    background: #4a76a8;
-    height: 42px;
-    box-sizing: border-box;
-    border-bottom: 1px solid #4872a3
 }
 
 #chart {

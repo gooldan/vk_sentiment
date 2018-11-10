@@ -30,10 +30,13 @@ const login = (callback) => {
           const urlAuth = SERVER + `/auth/init?code=${hash[1]}&redirectUri=${BLANK_URL}`;
           const request = new XMLHttpRequest();
           request.onreadystatechange = function() {
-            if (this.readyState === 4 && this.status === 200) {
-              const userId = JSON.parse(request.response);
-              callback(userId);
-              getMessages(userId);
+            if (this.readyState === 4) {
+              if (this.status === 200) {
+                const userId = JSON.parse(request.response);
+                callback(userId);
+              } else {
+                callback(null);
+              }
             }
           };
           request.open('GET', urlAuth, true);
@@ -45,11 +48,4 @@ const login = (callback) => {
     };
     chrome.tabs.onUpdated.addListener(listener);
   });
-};
-
-const getMessages = (userId) => {
-  const urlAuth = SERVER + `/api/messages?userId=${userId}`;
-  const request = new XMLHttpRequest();
-  request.open('GET', urlAuth, true);
-  request.send();
 };

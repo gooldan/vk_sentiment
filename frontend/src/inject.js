@@ -4,6 +4,7 @@ const visualisedCache = new Map();
 let timer = null;
 let enabled = null;
 let chart = null;
+let inputSentiment = null;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'OPEN_DIALOG') {
@@ -18,8 +19,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 function createTimer() {
   return setInterval(() => {
     chrome.storage.sync.get(['enabled'], items => {
-      if (items.enabled) {
+      if (true) {
         addChartButton();
+        addInputSentiment();
         Array.from(document.getElementsByClassName('im-mess _im_mess')).forEach(messageElement => {
           const id = messageElement.getAttribute('data-msgid');
           const element = visualisedCache.get(id);
@@ -30,11 +32,15 @@ function createTimer() {
             return;
           }
           if (!messageCache.has(id)) {
-            chrome.runtime.sendMessage({ id, tabId }, response => {
+            const text = messageElement.getElementsByClassName('im-mess--text').item(0).textContent;
+            const ts = Number(messageElement.getAttribute('data-ts'));
+            chrome.runtime.sendMessage({ id, tabId, text, ts }, response => {
               if (response && response.status && response.sentimentalMessage) {
                 const value = response.sentimentalMessage.pos;
                 messageCache.set(id, value);
                 addSentiment(messageElement, id, value);
+              } else {
+                messageCache.set(id, null);
               }
             });
           } else {
@@ -44,17 +50,21 @@ function createTimer() {
       } else if (enabled) {
         visualisedCache.forEach(element => element.style.display = 'none');
         removeChartButton();
+        removeInputSentiment();
       }
       enabled = items.enabled;
     });
-  }, 50);
+  }, 300);
 }
 
 function addSentiment(parent, id, value) {
+  if (value == null || visualisedCache.has(id)) {
+    return;
+  }
   const idElement = document.createElement('div');
   idElement.className = 'message-sentiment';
   idElement.style.backgroundColor = getColorForPercentage(value);
-  idElement.title = 'Test';
+  idElement.title = 'Сентимент: ' + (value * 100).toFixed(2) + '%';
   parent.appendChild(idElement);
   visualisedCache.set(id, idElement);
 }
@@ -68,7 +78,7 @@ function addChartButton() {
   action.tabIndex = 0;
   action.role = 'link';
   action.className = 'ui_actions_menu_item _im_action im-action im-action_clear im-action_chart';
-  action.textContent = 'Открыть статистику';
+  action.textContent = 'История сентиментов';
   action.onclick = () => {
     actionsContainer.parentElement.classList.remove('shown');
     openChart();
@@ -89,33 +99,77 @@ function openChart() {
   layout.className = 'sentiment-chart-layout';
 
   const header = document.createElement('div');
-  header.className = 'chart-header';
-  header.textContent = 'Test';
+  header.className = 'PopupHeader chart-header';
+
+  const headerText = document.createElement('h2');
+  headerText.className = 'PopupHeader__title';
+  headerText.textContent = 'История сентиментов';
+  header.appendChild(headerText);
+
+  const headerClose = document.createElement('div');
+  headerClose.className = 'PopupHeader__close';
+  header.appendChild(headerClose);
+
+  const headerCloseButton = document.createElement('button');
+  headerCloseButton.className = 'PopupHeader__closeBtn';
+  headerCloseButton.onclick = removeChart;
+  headerClose.appendChild(headerCloseButton);
+
   layout.appendChild(header);
 
   const chartContainer = document.createElement('div');
   chartContainer.id = 'chart';
   layout.appendChild(chartContainer);
 
-  document.body.appendChild(layout);
+  const name = document.getElementsByClassName('im-page--title-main-inner _im_page_peer_name').item(0).textContent;
 
-  chart = c3.generate({
-    bindto: '#chart',
-    data: {
-      x: 'x',
-      columns: [
-        ['x', 1, 2, 5, 7, 8, 9],
-        ['Sentiment', 30, 200, 100, 400, 150, 250],
-      ],
-    },
-    axis: {
-      y: { show: false }
-    },
-    legend: {
-      hide: true
-    },
-    onrendered: () => {
-      document.addEventListener('click', chartClickListener);
+  chrome.runtime.sendMessage({ tabId, type: 'chart' }, response => {
+    if (response && response.own && response.other) {
+      const own = response.own.map(value => ({ ...value, own: true }));
+      const other = response.other.map(value => ({ ...value, own: false }));
+      const values = Array.of(...own, ...other);
+      if (values.length === 0) {
+        removeChart();
+      }
+      values.sort((a, b) => a.timestamp - b.timestamp);
+      const ownAvg = (own.reduce((prev, next) => prev + next.pos, 0) * 100 / own.length).toFixed(2) + '%';
+      const otherAvg = (other.reduce((prev, next) => prev + next.pos, 0) * 100 / other.length).toFixed(2) + '%';
+      document.body.appendChild(layout);
+
+      chart = c3.generate({
+        bindto: '#chart',
+        data: {
+          columns: [
+            [`Вы (${ownAvg})`, ...values.map(value => value.own ? value.pos : null)],
+            [`${name.split(' ')[0]} (${otherAvg})`, ...values.map(value => !value.own ? value.pos : null)]
+          ],
+          onclick: (event) => {
+            chrome.runtime.sendMessage({ type: 'message', tabId, messageId: values[event.index].messageId }, () => {
+              removeChart();
+            });
+          },
+          type: 'line'
+        },
+        axis: {
+          x: { tick: { count: 2, fit: true, format: id => (new Date(values[id].timestamp * 1000)).toLocaleString() } },
+          y: { min: 0, max: 1, tick: { values: [0, 1], format: x => (x * 100) + '%' } }
+        },
+        line: {
+          connectNull: true
+        },
+        scroll: {
+          enabled: true
+        },
+        tooltip: {
+          format: {
+            value: value => (value * 100).toFixed(2) + '%'
+          }
+        },
+        area: { zerobased: true },
+        onrendered: () => {
+          document.addEventListener('click', chartClickListener);
+        }
+      });
     }
   });
 }
@@ -123,17 +177,62 @@ function openChart() {
 const chartClickListener = event => {
   let element = event.target;
   while (element) {
-    if (element.id === 'chart' || element.classList.contains('im-action_chart')) {
+    if (element.id === 'chart' || element.classList.contains('im-action_chart') || element.classList.contains('chart-header')) {
       return;
     }
     element = element.parentElement;
   }
-  chart.destroy();
+  removeChart();
+  document.removeEventListener('click', chartClickListener);
+}
+
+function removeChart() {
+  if (chart) {
+    chart.destroy();
+  }
   chart = null;
   Array.from(document.body.children).forEach(element => {
     if (element.id === 'chart-layout') {
       document.body.removeChild(element);
     }
   });
-  document.removeEventListener('click', chartClickListener);
+}
+
+const inputListener = event => {
+  if (inputSentiment) {
+    chrome.runtime.sendMessage({ type: 'online', text: event.target.textContent, tabId }, response => {
+      if (response) {
+        const value = response.pos;
+        inputSentiment.style.backgroundColor = getColorForPercentage(value);
+        inputSentiment.title = 'Сентимент ' + (value * 100).toFixed(2) + '%';
+      }
+    });
+  }
+}
+
+function addInputSentiment() {
+  if (inputSentiment) {
+    return;
+  }
+  const inputContainer = document.getElementsByClassName('im-chat-input--txt-wrap _im_text_wrap').item(0);
+  inputSentiment = document.createElement('div');
+  inputSentiment.className = 'message-sentiment input-message-sentiment';
+  const input = document.getElementsByClassName('im_editable im-chat-input--text _im_text').item(0);
+  chrome.runtime.sendMessage({ type: 'online', text: input.textContent, tabId }, response => {
+    if (response) {
+      const value = response.pos;
+      inputSentiment.style.backgroundColor = getColorForPercentage(value);
+      inputSentiment.title = 'Сентимент ' + (value * 100).toFixed(2) + '%';
+    }
+  });
+  inputContainer.appendChild(inputSentiment);
+  input.addEventListener('input', inputListener);
+}
+
+function removeInputSentiment() {
+  if (!inputSentiment)
+    return;
+  document.getElementsByClassName('im_editable im-chat-input--text _im_text').item(0).removeEventListener('input', inputListener);
+  inputSentiment.parent.removeChild(inputSentiment);
+  inputSentiment = null;
 }

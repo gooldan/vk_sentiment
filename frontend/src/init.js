@@ -17,7 +17,17 @@ chrome.runtime.onInstalled.addListener(() => {
       if (changeInfo.status === 'complete' && tabs.delete(tabId)) {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (message.tabId === tabId) {
-            dataRequest(userId, message.id, sendResponse);
+            if (message.type === 'online') {
+              inputRequest(message.text, sendResponse);
+            } else if (message.type === 'chart') {
+              chartRequest(userId, Number(url.searchParams.get('sel')), sendResponse);
+            } else if (message.type === 'message') {
+              const newUrl = new URL(tab.url);
+              newUrl.searchParams.set('msgid', message.messageId);
+              chrome.tabs.update(tab.id, { url: newUrl.href }, sendResponse);
+            } else {
+              dataRequest(userId, message, sendResponse);
+            }
           } else {
             sendResponse({});
           }
@@ -30,14 +40,46 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-function dataRequest(userId, id, callback) {
-  const urlLoad = SERVER + `/api/sentiment?userId=${userId}&messageId=${id}`;
+function dataRequest(userId, message, callback) {
+  const urlLoad = SERVER + `/api/sentiment`;
+  const data = JSON.stringify({
+    userId,
+    messageId: message.id,
+    text: message.text,
+    ts: message.ts
+  });
   const request = new XMLHttpRequest();
+  request.open('POST', urlLoad, true);
+  request.setRequestHeader('Content-type', 'application/json');
   request.onreadystatechange = function() {
     if (this.readyState === 4 && this.status === 200) {
       callback(JSON.parse(request.response));
     }
   };
+  request.send(data);
+}
+
+function inputRequest(text, callback) {
+  const urlLoad = SERVER + `/api/online`;
+  const request = new XMLHttpRequest();
+  request.open('POST', urlLoad, true);
+  request.setRequestHeader('Content-type', 'application/json');
+  request.onreadystatechange = function() {
+    if (this.readyState === 4 && this.status === 200) {
+      callback(JSON.parse(request.response));
+    }
+  };
+  request.send(JSON.stringify({ text }));
+}
+
+function chartRequest(userId, peerId, callback) {
+  const urlLoad = SERVER + `/api/graph?userId=${userId}&peerId=${peerId}`;
+  const request = new XMLHttpRequest();
   request.open('GET', urlLoad, true);
+  request.onreadystatechange = function() {
+    if (this.readyState === 4 && this.status === 200) {
+      callback(JSON.parse(request.response));
+    }
+  };
   request.send();
 }
