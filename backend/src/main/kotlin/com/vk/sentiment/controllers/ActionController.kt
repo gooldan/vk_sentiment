@@ -1,7 +1,7 @@
 package com.vk.sentiment.controllers
 
 import com.google.common.cache.CacheBuilder
-import com.vk.sentiment.core.PythonClient
+import com.vk.sentiment.core.*
 import com.vk.sentiment.data.SentimentalService
 import org.springframework.web.bind.annotation.*
 
@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api")
 class ActionController(
   val sentimentalService: SentimentalService,
-  val pythonClient: PythonClient) {
-
+  val pythonClient: PythonClient,
+  val globalExecutor: GlobalExecutor,
+  val vkClient: SmartVkClient
+) {
   private val cache = CacheBuilder
     .newBuilder()
     .maximumSize(20000)
@@ -38,8 +40,9 @@ class ActionController(
       }
       val mlResult = pythonClient.sendMessage(request.text)
       val result = SentimentalMessageDto(mlResult.neg, mlResult.pos, request.ts)
-
-      //GlobalScope.launch { sentimentalService.save(request.userId, request.messageId, result.neg, result.pos) }
+      globalExecutor
+        .add { vkClient.getMessage(request.userId, request.messageId) }
+        .thenApply { message -> sentimentalService.save(request.userId, message!!, result.neg, result.pos) }
       return@get result
     }
     return SentimentalResult(value != null, value)

@@ -5,7 +5,7 @@ const AUTH_HOST = 'https://oauth.vk.com';
 const AUTH_HTML = AUTH_HOST + '/authorize?';
 const BLANK_URL = AUTH_HOST + '/blank.html';
 
-const LOCALHOST = 'http://127.0.0.1:8080';
+const LOCALHOST = 'http://192.168.1.62:8080';
 
 const login = (callback) => {
   const codeUrl = AUTH_HTML +

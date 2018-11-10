@@ -12,14 +12,16 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 class BeansInitializer : ApplicationContextInitializer<GenericApplicationContext> {
   override fun initialize(ctx: GenericApplicationContext) = beans {
     bean { UsersHolder() }
-    bean { SentimentalService(ref(), ref()) }
+    bean { SentimentalService(ref()) }
     bean { PythonClient() }
+    bean { GlobalExecutor() }
     bean {
       val objectMapper = ObjectMapper().registerKotlinModule()
       val messageConverter = MappingJackson2HttpMessageConverter()
       messageConverter.setPrettyPrint(false)
       messageConverter.objectMapper = objectMapper
     }
-    bean { DialogProcessor(ref(), ref()) }
+    bean { SmartVkClient(ref()) }
+    bean { DialogProcessor(ref(), ref(), ref(), ref()) }
   }.initialize(ctx)
 }

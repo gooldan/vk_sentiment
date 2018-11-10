@@ -1,17 +1,12 @@
 package com.vk.sentiment.data
 
-import com.vk.api.sdk.client.VkApiClient
-import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.api.sdk.objects.messages.Message
 import com.vk.sentiment.controllers.*
-import com.vk.sentiment.core.UsersHolder
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.repository.MongoRepository
 
 
-class SentimentalService(val sentimentalRepo: SentimentalMessageRepository, val usersHolder: UsersHolder) {
-
-  private val vk = VkApiClient(HttpTransportClient())
+class SentimentalService(val sentimentalRepo: SentimentalMessageRepository) {
 
   fun save(userId: Int, message: Message, neg: Double, pos: Double) {
     sentimentalRepo.save(
@@ -20,11 +15,6 @@ class SentimentalService(val sentimentalRepo: SentimentalMessageRepository, val 
         message.userId, message.isOut, uniqueId(userId, message.id)
       )
     )
-  }
-
-  fun save(userId: Int, messageId: Int, neg: Double, pos: Double) {
-    val message = vk.messages().getById(usersHolder.get(userId), messageId).execute().items[0]
-    save(userId, message, neg, pos)
   }
 
   fun getDto(userId: Int, messageId: Int): SentimentalMessageDto? {
