@@ -3,13 +3,15 @@ package com.vk.sentiment.controllers
 import com.vk.api.sdk.client.VkApiClient
 import com.vk.api.sdk.client.actors.UserActor
 import com.vk.api.sdk.httpclient.HttpTransportClient
-import com.vk.sentiment.core.UsersHolder
+import com.vk.sentiment.core.DialogProcessor
+import com.vk.sentiment.core.PythonClient
+import com.vk.sentiment.data.SentimentalMessageRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/auth")
-class Controller(val usersHolder: UsersHolder) {
+class Controller(val pythonClient: PythonClient, val sentimentalRepo: SentimentalMessageRepository) {
 
   @Value("\${app.id}")
   private var appId: Int = 0
@@ -27,7 +29,7 @@ class Controller(val usersHolder: UsersHolder) {
 
     val actor = UserActor(authResponse.userId, authResponse.accessToken)
 
-    usersHolder.put(authResponse.userId, actor)
+    DialogProcessor(actor, vk, pythonClient, sentimentalRepo).processAll()
 
     return authResponse.userId
   }

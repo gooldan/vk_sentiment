@@ -5,7 +5,7 @@ const AUTH_HOST = 'https://oauth.vk.com';
 const AUTH_HTML = AUTH_HOST + '/authorize?';
 const BLANK_URL = AUTH_HOST + '/blank.html';
 
-const LOCALHOST = 'http://127.0.0.1:8080';
+const SERVER = 'http://192.168.1.62:8080';
 
 const login = (callback) => {
   const codeUrl = AUTH_HTML +
@@ -15,29 +15,29 @@ const login = (callback) => {
     `scope=messages,offline&` +
     `response_type=code&` +
     `v=${API_VERSION}`;
-  chrome.tabs.create({ url: codeUrl, active: false }, tokenTab => {
+  chrome.windows.create({ url: codeUrl, width: 600, height: 400, type: 'popup' }, window => {
     const listener = (tabId, changeInfo, tab) => {
-      if (tabId === tokenTab.id && changeInfo.url) {
+      if (tabId === window.tabs[0].id && changeInfo.url) {
         const url = new URL(tab.url);
         if (!url.searchParams.has(`client_id`)) {
           chrome.tabs.onUpdated.removeListener(listener);
-          chrome.tabs.remove(tabId);
+          chrome.windows.remove(window.id);
         } else {
           return;
         }
         const hash = url.hash.split(`=`);
         if (hash.length === 2) {
-          const urlAuth = LOCALHOST + `/auth/init?code=${hash[1]}&redirectUri=${BLANK_URL}`;
+          const urlAuth = SERVER + `/auth/init?code=${hash[1]}&redirectUri=${BLANK_URL}`;
           const request = new XMLHttpRequest();
-          request.open('GET', urlAuth, false);
-          try {
-            request.send();
-          } catch (e) {
-            console.error(e);
-          }
-          const userId = JSON.parse(request.response);
-          callback(userId);
-          getMessages(userId);
+          request.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+              const userId = JSON.parse(request.response);
+              callback(userId);
+              getMessages(userId);
+            }
+          };
+          request.open('GET', urlAuth, true);
+          request.send();
         } else {
           callback(null);
         }
@@ -48,12 +48,8 @@ const login = (callback) => {
 };
 
 const getMessages = (userId) => {
-  const urlAuth = LOCALHOST + `/api/messages?userId=${userId}`;
+  const urlAuth = SERVER + `/api/messages?userId=${userId}`;
   const request = new XMLHttpRequest();
-  request.open('GET', urlAuth, false);
-  try {
-    request.send();
-  } catch (e) {
-    console.error(e);
-  }
+  request.open('GET', urlAuth, true);
+  request.send();
 };

@@ -1,0 +1,12 @@
+{
+  "name": "vk-sentiment",
+  "version": "1.0.0",
+  "description": "VK built-in sentiment for dialogs",
+  "author": "Semen Yuryev",
+  "dependencies": {
+    "c3": "0.6.8"
+  },
+  "devDependencies": {
+    "@types/c3": "0.6.2"
+  }
+}

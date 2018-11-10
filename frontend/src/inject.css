@@ -1,13 +1,50 @@
 .message-sentiment {
     color: transparent;
     position: absolute;
-    height: 90%;
-    top: 5%;
+    height: 100%;
+    top: 0;
     left: -4px;
     width: 6px;
+    opacity: 0;
+}
+
+.im-mess:hover .message-sentiment {
     opacity: 0.5;
 }
 
-.message-sentiment:hover {
+.im-mess:hover .message-sentiment:hover {
     opacity: 1;
+}
+
+.im-action_chart::before {
+    background: url(/images/icons/profile_statistics.png?1) center 0 no-repeat !important;
+}
+
+.sentiment-chart-layout {
+    z-index: 1000;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.sentiment-chart-layout .chart-header {
+    position: absolute;
+    top: calc(20% - 42px);
+    left: 20%;
+    width: 60%;
+    background: #4a76a8;
+    height: 42px;
+    box-sizing: border-box;
+    border-bottom: 1px solid #4872a3
+}
+
+#chart {
+    max-height: 100% !important;
+    left: 20%;
+    top: 20%;
+    width: 60%;
+    height: 60%;
+    background: white;
 }
