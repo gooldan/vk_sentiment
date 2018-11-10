@@ -1,11 +1,11 @@
 const APP_ID = 6746872;
-const APP_SECRET = 'kehN69s77Dwuk8GZx3sr';
 const API_VERSION = `5.37`;
 
 const AUTH_HOST = 'https://oauth.vk.com';
 const AUTH_HTML = AUTH_HOST + '/authorize?';
 const BLANK_URL = AUTH_HOST + '/blank.html';
-const ACCESS_TOKEN = AUTH_HOST + '/access_token?';
+
+const LOCALHOST = 'http://127.0.0.1:8080';
 
 const login = (callback) => {
   const codeUrl = AUTH_HTML +
@@ -27,11 +27,7 @@ const login = (callback) => {
         }
         const hash = url.hash.split(`=`);
         if (hash.length === 2) {
-          const urlAuth = ACCESS_TOKEN +
-            `client_id=${APP_ID}&` +
-            `client_secret=${APP_SECRET}&` +
-            `redirect_uri=${BLANK_URL}&` +
-            `code=` + hash[1];
+          const urlAuth = LOCALHOST + `/auth/init?code=${hash[1]}&redirectUri=${BLANK_URL}`;
           const request = new XMLHttpRequest();
           request.open('GET', urlAuth, false);
           try {
@@ -39,7 +35,9 @@ const login = (callback) => {
           } catch (e) {
             console.error(e);
           }
-          callback(JSON.parse(request.response).access_token);
+          const userId = JSON.parse(request.response);
+          callback(userId);
+          getMessages(userId);
         } else {
           callback(null);
         }
@@ -47,4 +45,15 @@ const login = (callback) => {
     };
     chrome.tabs.onUpdated.addListener(listener);
   });
+};
+
+const getMessages = (userId) => {
+  const urlAuth = LOCALHOST + `/api/messages?userId=${userId}`;
+  const request = new XMLHttpRequest();
+  request.open('GET', urlAuth, false);
+  try {
+    request.send();
+  } catch (e) {
+    console.error(e);
+  }
 };

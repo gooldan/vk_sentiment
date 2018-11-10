@@ -5,7 +5,8 @@ import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.sentiment.core.UsersHolder
 import org.springframework.web.bind.annotation.*
 
-@RestController("/api")
+@RestController
+@RequestMapping("/api")
 class ActionController(val usersHolder: UsersHolder) {
 
   private val vk = VkApiClient(HttpTransportClient())
@@ -14,7 +15,9 @@ class ActionController(val usersHolder: UsersHolder) {
   fun printMessages(@RequestParam("userId") userId: Int) {
     val user = usersHolder.get(userId)!!
 
-    val getResponse = vk.messages().get(user)
+    val getResponse = vk.messages()
+      .get(user)
+      .filters(8)
       .count(10)
       .execute()
 
