@@ -1,6 +1,6 @@
 chrome.runtime.onInstalled.addListener(() => {
-  login((token) => {
-    chrome.storage.sync.set({ 'enabled': !!token });
+  login((userId) => {
+    chrome.storage.sync.set({ 'enabled': !!userId });
 
     const tabs = new Set();
 
@@ -15,8 +15,29 @@ chrome.runtime.onInstalled.addListener(() => {
       }
 
       if (changeInfo.status === 'complete' && tabs.delete(tabId)) {
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+          if (message.tabId === tabId) {
+            dataRequest(userId, message.id, sendResponse);
+          } else {
+            sendResponse({});
+          }
+          return true;
+        });
+
         chrome.tabs.sendMessage(tabId, { tabId, dialogId: url.searchParams.get('sel'), type: 'OPEN_DIALOG' });
       }
     });
   });
 });
+
+function dataRequest(userId, id, callback) {
+  const urlLoad = SERVER + `/api/sentiment?userId=${userId}&messageId=${id}`;
+  const request = new XMLHttpRequest();
+  request.onreadystatechange = function() {
+    if (this.readyState === 4 && this.status === 200) {
+      callback(JSON.parse(request.response));
+    }
+  };
+  request.open('GET', urlLoad, true);
+  request.send();
+}

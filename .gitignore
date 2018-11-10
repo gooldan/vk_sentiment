@@ -3,3 +3,4 @@ node_modules/
 *.iml
 venv/
 *.properties
+frontend/package-lock.json
