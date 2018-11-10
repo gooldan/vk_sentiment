@@ -42,6 +42,8 @@ repositories {
 }
 
 dependencies {
+    compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
+
     compile("org.springframework.boot:spring-boot-starter-data-mongodb")
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.4.1"
 
