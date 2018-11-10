@@ -5,9 +5,11 @@ import com.vk.api.sdk.client.actors.UserActor
 import com.vk.api.sdk.objects.messages.Dialog
 import com.vk.sentiment.data.SentimentalMessageRepository
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
 
 
 class DialogProcessor(
+  private val mutex: Mutex,
   private val actor: UserActor,
   private val vk: VkApiClient,
   private val pythonClient: PythonClient,
@@ -31,7 +33,15 @@ class DialogProcessor(
     history.items.forEach {
       GlobalScope.launch {
         val sentimentalMessage = pythonClient.sendMessage(it.id, actor.id, it.body, it.date)
-        sentimentalRepo.save(sentimentalMessage)
+        mutex.lock()
+        try {
+          val last = sentimentalRepo.findAllByUserIdAndMessageId(it.userId, it.id)
+          if (last.isEmpty()) {
+            sentimentalRepo.save(sentimentalMessage)
+          }
+        } finally {
+          mutex.unlock()
+        }
       }
     }
   }

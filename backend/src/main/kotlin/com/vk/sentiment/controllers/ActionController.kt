@@ -10,8 +10,8 @@ class ActionController(val sentimentalRepo: SentimentalMessageRepository) {
 
   @GetMapping("sentiment")
   fun sentiment(@RequestParam("userId") userId: Int, @RequestParam("messageId") messageId: Int): SentimentalResult? {
-    val message = sentimentalRepo.findByUserIdAndMessageId(userId, messageId)
-    return SentimentalResult(message != null, message)
+    val messages = sentimentalRepo.findAllByUserIdAndMessageId(userId, messageId)
+    return if (messages.isNotEmpty()) SentimentalResult(true, messages[0]) else SentimentalResult(false, null)
   }
 }
 

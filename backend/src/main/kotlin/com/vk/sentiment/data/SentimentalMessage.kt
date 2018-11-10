@@ -4,7 +4,7 @@ import org.springframework.data.mongodb.repository.MongoRepository
 
 
 interface SentimentalMessageRepository : MongoRepository<SentimentalMessage, String> {
-  fun findByUserIdAndMessageId(userId: Int, messageId: Int): SentimentalMessage?
+  fun findAllByUserIdAndMessageId(userId: Int, messageId: Int): List<SentimentalMessage>
 }
 
 data class SentimentalMessage(

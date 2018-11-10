@@ -6,6 +6,7 @@ import com.vk.api.sdk.httpclient.HttpTransportClient
 import com.vk.sentiment.core.DialogProcessor
 import com.vk.sentiment.core.PythonClient
 import com.vk.sentiment.data.SentimentalMessageRepository
+import kotlinx.coroutines.sync.Mutex
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.*
 
@@ -19,9 +20,10 @@ class Controller(val pythonClient: PythonClient, val sentimentalRepo: Sentimenta
   @Value("\${app.secret}")
   private lateinit var appSecret: String
 
+  private val mutex = Mutex()
+
   @GetMapping("init")
   fun init(@RequestParam("code") code: String, @RequestParam("redirectUri") redirectUri: String): Int {
-
     val vk = VkApiClient(HttpTransportClient())
     val authResponse = vk.oauth()
       .userAuthorizationCodeFlow(appId, appSecret, redirectUri, code)
@@ -29,7 +31,7 @@ class Controller(val pythonClient: PythonClient, val sentimentalRepo: Sentimenta
 
     val actor = UserActor(authResponse.userId, authResponse.accessToken)
 
-    DialogProcessor(actor, vk, pythonClient, sentimentalRepo).processAll()
+    DialogProcessor(mutex, actor, vk, pythonClient, sentimentalRepo).processAll()
 
     return authResponse.userId
   }
