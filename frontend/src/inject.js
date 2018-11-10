@@ -12,6 +12,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     timer = createTimer();
   } else if (message.type === 'CLOSE_DIALOG' && timer) {
     clearInterval(timer);
+    removeInputSentiment();
     visualisedCache.clear();
   }
 });
@@ -19,7 +20,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 function createTimer() {
   return setInterval(() => {
     chrome.storage.sync.get(['enabled'], items => {
-      if (true) {
+      if (enabled) {
         addChartButton();
         addInputSentiment();
         Array.from(document.getElementsByClassName('im-mess _im_mess')).forEach(messageElement => {
@@ -32,7 +33,7 @@ function createTimer() {
             return;
           }
           if (!messageCache.has(id)) {
-            const text = messageElement.getElementsByClassName('im-mess--text').item(0).textContent;
+            const text = decodeMessage(messageElement.getElementsByClassName('im-mess--text').item(0));
             const ts = Number(messageElement.getAttribute('data-ts'));
             chrome.runtime.sendMessage({ id, tabId, text, ts }, response => {
               if (response && response.status && response.sentimentalMessage) {
@@ -151,14 +152,18 @@ function openChart() {
           type: 'line'
         },
         axis: {
-          x: { tick: { count: 2, fit: true, format: id => (new Date(values[id].timestamp * 1000)).toLocaleString() } },
+          x: {
+            padding: { right: 15 },
+            tick: { outer: false, count: 2, format: id => (new Date(values[id].timestamp * 1000)).toLocaleString() }
+          },
           y: { min: 0, max: 1, tick: { values: [0, 1], format: x => (x * 100) + '%' } }
         },
         line: {
           connectNull: true
         },
-        scroll: {
-          enabled: true
+        zoom: {
+          enabled: true,
+          type: 'scroll'
         },
         tooltip: {
           format: {
@@ -200,7 +205,7 @@ function removeChart() {
 
 const inputListener = event => {
   if (inputSentiment) {
-    chrome.runtime.sendMessage({ type: 'online', text: event.target.textContent, tabId }, response => {
+    chrome.runtime.sendMessage({ type: 'online', text: decodeMessage(event.target), tabId }, response => {
       if (response) {
         const value = response.pos;
         inputSentiment.style.backgroundColor = getColorForPercentage(value);
@@ -235,4 +240,10 @@ function removeInputSentiment() {
   document.getElementsByClassName('im_editable im-chat-input--text _im_text').item(0).removeEventListener('input', inputListener);
   inputSentiment.parent.removeChild(inputSentiment);
   inputSentiment = null;
+}
+
+function decodeMessage(element) {
+  let result = '';
+  element.childNodes.forEach(child => result += child.textContent || child.alt || '');
+  return result;
 }
