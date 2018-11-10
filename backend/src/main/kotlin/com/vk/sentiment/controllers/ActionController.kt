@@ -3,6 +3,7 @@ package com.vk.sentiment.controllers
 import com.google.common.cache.CacheBuilder
 import com.vk.sentiment.core.*
 import com.vk.sentiment.data.SentimentalService
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 
 
@@ -14,6 +15,8 @@ class ActionController(
   val globalExecutor: GlobalExecutor,
   val vkClient: SmartVkClient
 ) {
+  private val logger = LoggerFactory.getLogger(ActionController::class.java)
+
   private val cache = CacheBuilder
     .newBuilder()
     .maximumSize(20000)
@@ -21,17 +24,20 @@ class ActionController(
 
   @PostMapping("online")
   fun online(@RequestBody request: OnlineRequest): OnlineResult {
+    logger.info("Online request received: $request")
     val mlResult = pythonClient.sendMessage(request.text)
     return OnlineResult(mlResult.neg, mlResult.pos)
   }
 
   @GetMapping("graph")
   fun graph(@RequestParam("userId") userId: Int, @RequestParam("peerId") peerId: Int): GraphResponse {
+    logger.info("Graph request received: userId=$userId, peerId=$peerId")
     return sentimentalService.history(userId, peerId)
   }
 
   @PostMapping("sentiment")
   fun sentiment(@RequestBody request: SentimentRequest): SentimentalResult {
+    logger.info("Message request received: $request")
     val key = request.userId to request.messageId
     val value = cache.get(key) {
       val messages = sentimentalService.getDto(request.userId, request.messageId)
