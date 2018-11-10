@@ -1,22 +1,20 @@
 package com.vk.sentiment.core
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.vk.sentiment.data.SentimentalMessage
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.client.RestTemplate
 
 class PythonClient {
 
-  fun sendMessage(messageId: Int, userId: Int, body: String) {
-    val objectMapper = ObjectMapper().registerKotlinModule()
-    val messageConverter = MappingJackson2HttpMessageConverter()
-    messageConverter.setPrettyPrint(false)
-    messageConverter.objectMapper = objectMapper
+  @Value("\${pythonEvalUrl}")
+  private lateinit var pythonEvalUrl: String
+
+  fun sendMessage(messageId: Int, userId: Int, body: String, timestamp: Int): SentimentalMessage {
     val restTemplate = RestTemplate()
     val request = HttpEntity(MessageDto(messageId, userId, body))
-    val response = restTemplate.postForEntity("http://192.168.1.39:5000/get_score_pos_neg", request, MlResponse::class.java)
-    println(response)
+    val response = restTemplate.postForEntity(pythonEvalUrl, request, MlResponse::class.java).body!!
+    return SentimentalMessage(userId, messageId, response.neg, response.pos, timestamp)
   }
 }
 

@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-   // compile("org.springframework.boot:spring-boot-starter-data-mongodb")
+    compile("org.springframework.boot:spring-boot-starter-data-mongodb")
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:2.9.4.1"
 
     compile 'org.apache.httpcomponents:httpclient:4.5.6'
