@@ -24,7 +24,6 @@ class ActionController(
 
   @PostMapping("online")
   fun online(@RequestBody request: OnlineRequest): OnlineResult {
-    logger.info("Online request received: $request")
     val mlResult = pythonClient.sendMessage(request.text)
     return OnlineResult(mlResult.neg, mlResult.pos)
   }
@@ -37,7 +36,6 @@ class ActionController(
 
   @PostMapping("sentiment")
   fun sentiment(@RequestBody request: SentimentRequest): SentimentalResult {
-    logger.info("Message request received: $request")
     val key = request.userId to request.messageId
     val value = cache.get(key) {
       val messages = sentimentalService.getDto(request.userId, request.messageId)
