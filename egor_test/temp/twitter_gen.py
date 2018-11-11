@@ -40,16 +40,16 @@ def csv_reader(outfile):
     random.shuffle(ans)
 
     with open('train.json', 'w') as outfile:
-        for line in ans[:16650]:
+        for line in ans[:166500]:
             outfile.write(line + '\n')
 
     with open('test.json', 'w') as outfile:
-        for line in ans[16651:21091]:
+        for line in ans[166510:210910]:
             outfile.write(line + '\n')
         #outfile.writelines(ans[16651:21091])
 
     with open('valid.json', 'w') as outfile:
-        for line in ans[21092:222000]:
+        for line in ans[210920:222000]:
             outfile.write(line + '\n')
 
 if __name__ == "__main__":
