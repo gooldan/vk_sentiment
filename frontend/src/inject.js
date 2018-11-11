@@ -238,6 +238,10 @@ function removeInputSentiment() {
   if (!inputSentiment)
     return;
   document.getElementsByClassName('im_editable im-chat-input--text _im_text').item(0).removeEventListener('input', inputListener);
+  if (!inputSentiment.parent) {
+    inputSentiment = null;
+    return;
+  }
   inputSentiment.parent.removeChild(inputSentiment);
   inputSentiment = null;
 }

@@ -11,7 +11,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
         const listener = listeners.get(tabId);
         if (listener) {
-          chrome.runtime.onMessage.removeListener(listener)
+          chrome.runtime.onMessage.removeListener(listener);
         }
 
         const newListener = createListener(userId, tab, tabId);
