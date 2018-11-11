@@ -47,15 +47,15 @@
 
 .sentiment-chart-layout .chart-header {
     position: absolute;
-    top: calc(30% - 54px);
-    left: 27%;
+    top: calc(20% - 54px);
+    left: 20%;
     width: 60%;
 }
 
 #chart {
     max-height: 100% !important;
-    left: 27%;
-    top: 30%;
+    left: 20%;
+    top: 20%;
     width: 60%;
     height: 60%;
     background: white;
