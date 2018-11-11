@@ -45,7 +45,7 @@ class ActionController(
       val mlResult = pythonClient.sendMessage(request.text)
       val result = SentimentalMessageDto(mlResult.neg, mlResult.pos, request.ts)
       globalExecutor
-        .add { vkClient.getMessage(request.userId, request.messageId) }
+        .addToFront { vkClient.getMessage(request.userId, request.messageId) }
         .thenApply { message -> sentimentalService.save(request.userId, message!!, result.neg, result.pos) }
       return@get result
     }

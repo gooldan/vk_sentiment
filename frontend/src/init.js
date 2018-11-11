@@ -62,11 +62,16 @@ function dataRequest(userId, message, callback) {
   const request = new XMLHttpRequest();
   request.open('POST', urlLoad, true);
   request.setRequestHeader('Content-type', 'application/json');
+  request.timeout = 500;
   request.onreadystatechange = function() {
     if (this.readyState === 4 && this.status === 200) {
       callback(JSON.parse(request.response));
     }
   };
+  request.onerror = function(error) {
+    console.error(error);
+    callback(null);
+  }
   request.send(data);
 }
 
@@ -75,11 +80,16 @@ function inputRequest(text, callback) {
   const request = new XMLHttpRequest();
   request.open('POST', urlLoad, true);
   request.setRequestHeader('Content-type', 'application/json');
+  request.timeout = 500;
   request.onreadystatechange = function() {
     if (this.readyState === 4 && this.status === 200) {
       callback(JSON.parse(request.response));
     }
   };
+  request.onerror = function(error) {
+    console.error(error);
+    callback(null);
+  }
   request.send(JSON.stringify({ text }));
 }
 
@@ -92,5 +102,10 @@ function chartRequest(userId, peerId, callback) {
       callback(JSON.parse(request.response));
     }
   };
+  request.onerror = function(error) {
+    console.error(error);
+    callback(null);
+  }
+  request.timeout = 500;
   request.send();
 }

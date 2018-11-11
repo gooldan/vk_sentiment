@@ -23,7 +23,7 @@ class SentimentalService(val sentimentalRepo: SentimentalMessageRepository) {
   }
 
   fun history(userId: Int, peerId: Int): GraphResponse {
-    val messages = sentimentalRepo.findAllByUserIdAndPeerId(userId, peerId).take(200).sortedBy { it.timestamp }
+    val messages = sentimentalRepo.findAllByUserIdAndPeerId(userId, peerId).sortedBy { it.timestamp }.takeLast(200)
     val ownMessages = messages.filter { it.owner }.map { GraphPoint(it.messageId, it.neg, it.pos, it.timestamp) }
     val others = messages.filterNot { it.owner }.map { GraphPoint(it.messageId, it.neg, it.pos, it.timestamp) }
     return GraphResponse(ownMessages, others)
