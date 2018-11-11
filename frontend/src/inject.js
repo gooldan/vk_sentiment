@@ -133,8 +133,8 @@ function openChart() {
         removeChart();
       }
       values.sort((a, b) => a.timestamp - b.timestamp);
-      const ownAvg = (own.reduce((prev, next) => prev + next.pos, 0) * 100 / own.length).toFixed(2) + '%';
-      const otherAvg = (other.reduce((prev, next) => prev + next.pos, 0) * 100 / other.length).toFixed(2) + '%';
+      const ownAvg = own.length === 0 ? '0%' : (own.reduce((prev, next) => prev + next.pos, 0) * 100 / own.length).toFixed(2) + '%';
+      const otherAvg = other.length === 0 ? '0%' : (other.reduce((prev, next) => prev + next.pos, 0) * 100 / other.length).toFixed(2) + '%';
       document.body.appendChild(layout);
 
       chart = c3.generate({
@@ -153,7 +153,7 @@ function openChart() {
         },
         axis: {
           x: {
-            padding: { right: 15 },
+            padding: { right: values.length < 2 ? 0 : 15 },
             tick: { outer: false, count: 2, format: id => (new Date(values[id].timestamp * 1000)).toLocaleString() }
           },
           y: { min: 0, max: 1, tick: { values: [0, 1], format: x => (x * 100) + '%' } }
