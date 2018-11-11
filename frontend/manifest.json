@@ -15,8 +15,8 @@
   },
   "content_scripts": [
     {
-      "js": ["src/color.js", "src/inject.js"],
-      "css": ["src/inject.css"],
+      "js": ["node_modules/d3/dist/d3.min.js", "node_modules/c3/c3.js", "src/color.js", "src/inject.js"],
+      "css": ["node_modules/c3/c3.css", "src/inject.css"],
       "matches": ["https://vk.com/*"],
       "run_at": "document_idle"
     }
