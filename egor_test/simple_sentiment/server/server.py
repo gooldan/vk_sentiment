@@ -58,9 +58,7 @@ def pos_neg_request():
         try:
             body = request.json
             message = body["message"]
-            messageID = str(body["messageID"])
-            userID = str(body["userID"])
-            if len(message) > 0 and len(messageID) > 0 and len(userID) > 0:
+            if len(message) >= 0:
                 new_pred = loaded_model.predict_proba(tfidf.transform([message])).squeeze()   
                 neg, pos = new_pred[0], new_pred[1]
                 return jsonify(neg = neg, pos = pos)
